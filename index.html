@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Resizer - Page Consolidation</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .app-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+        .app-title {
+            color: #2c3e50;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        .app-description {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        .upload-container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        #drop-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            margin-bottom: 20px;
+        }
+        #drop-area.highlight {
+            background-color: #ecf0f1;
+            border-color: #2980b9;
+        }
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+        #fileInput {
+            display: none;
+        }
+        .file-label {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+        }
+        .file-label:hover {
+            background-color: #2980b9;
+        }
+        .input-description {
+            margin-top: 15px;
+            color: #7f8c8d;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: 600;
+        }
+        #progress-container {
+            margin-top: 20px;
+            display: none;
+        }
+        #progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        #progress {
+            height: 100%;
+            width: 0;
+            background-color: #2ecc71;
+            transition: width 0.3s ease;
+        }
+        #progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-size: 14px;
+            color: #7f8c8d;
+        }
+        .btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            color: white;
+            background-color: #3498db;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        .hidden {
+            display: none;
+        }
+        #download-btn {
+            background-color: #2ecc71;
+        }
+        #download-btn:hover {
+            background-color: #27ae60;
+        }
+        .how-it-works {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .how-it-works h2 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .example-image {
+            max-width: 100%;
+            border: 1px solid #e1e4e8;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .options {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .option-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        .grid-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .grid-option {
+            border: 2px solid #e1e4e8;
+            border-radius: 4px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .grid-option:hover {
+            border-color: #3498db;
+            background-color: #f1f8fe;
+        }
+        .grid-option.selected {
+            border-color: #3498db;
+            background-color: #e1f0fa;
+        }
+        .grid-option-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .grid-option-desc {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        .orientation-options {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .orientation-option {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        .orientation-option input {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1 class="app-title">PDF Page Consolidator</h1>
+            <p class="app-description">Convert a multi-page PDF into a condensed version with multiple pages per sheet</p>
+        </header>
+
+        <div class="upload-container">
+            <div id="drop-area">
+                <p>Drag & drop your PDF file here</p>
+                <div class="file-input-wrapper">
+                    <label for="fileInput" class="file-label">Choose a file</label>
+                    <input type="file" id="fileInput" accept=".pdf" />
+                </div>
+                <p class="input-description">Maximum file size: 50MB</p>
+            </div>
+
+            <div id="options" class="options hidden">
+                <div class="option-title">Pages per sheet:</div>
+                <div class="grid-options">
+                    <div class="grid-option" data-pages="2" data-layout="1x2">
+                        <div class="grid-option-title">2 pages</div>
+                        <div class="grid-option-desc">1×2 layout</div>
+                    </div>
+                    <div class="grid-option" data-pages="4" data-layout="2x2">
+                        <div class="grid-option-title">4 pages</div>
+                        <div class="grid-option-desc">2×2 layout</div>
+                    </div>
+                    <div class="grid-option selected" data-pages="6" data-layout="2x3">
+                        <div class="grid-option-title">6 pages</div>
+                        <div class="grid-option-desc">2×3 layout</div>
+                    </div>
+                    <div class="grid-option" data-pages="8" data-layout="2x4">
+                        <div class="grid-option-title">8 pages</div>
+                        <div class="grid-option-desc">2×4 layout</div>
+                    </div>
+                    <div class="grid-option" data-pages="9" data-layout="3x3">
+                        <div class="grid-option-title">9 pages</div>
+                        <div class="grid-option-desc">3×3 layout</div>
+                    </div>
+                    <div class="grid-option" data-pages="12" data-layout="3x4">
+                        <div class="grid-option-title">12 pages</div>
+                        <div class="grid-option-desc">3×4 layout</div>
+                    </div>
+                </div>
+                
+                <div class="option-title">Page orientation:</div>
+                <div class="orientation-options">
+                    <label class="orientation-option">
+                        <input type="radio" name="orientation" value="landscape" checked> Landscape
+                    </label>
+                    <label class="orientation-option">
+                        <input type="radio" name="orientation" value="portrait"> Portrait
+                    </label>
+                </div>
+            </div>
+
+            <div id="status"></div>
+            
+            <div id="progress-container">
+                <div id="progress-bar">
+                    <div id="progress"></div>
+                </div>
+                <div id="progress-text">Processing: 0%</div>
+            </div>
+
+            <div id="actions" class="hidden">
+                <button id="process-btn" class="btn">Process PDF</button>
+                <a id="download-btn" class="btn hidden" download="consolidated_pdf.pdf">Download Result</a>
+            </div>
+        </div>
+
+        <div class="how-it-works">
+            <h2>How It Works</h2>
+            <p>This tool takes your PDF and consolidates it by placing multiple pages of the original document onto each page of a new PDF document:</p>
+            <ul>
+                <li>Choose how many pages to combine (2, 4, 6, 8, 9, or 12 per sheet)</li>
+                <li>Select the page orientation that works best for your content</li>
+                <li>All processing is done in your browser - files are not uploaded to any server</li>
+            </ul>
+            <p>Perfect for printing reference materials, reducing paper usage, or creating compact versions of large documents.</p>
+        </div>
+    </div>
+
+    <!-- Include PDF.js and jsPDF libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        // Set up PDF.js worker
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+        // DOM elements
+        const dropArea = document.getElementById('drop-area');
+        const fileInput = document.getElementById('fileInput');
+        const status = document.getElementById('status');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress');
+        const progressText = document.getElementById('progress-text');
+        const optionsDiv = document.getElementById('options');
+        const actionsDiv = document.getElementById('actions');
+        const processBtn = document.getElementById('process-btn');
+        const downloadBtn = document.getElementById('download-btn');
+        const gridOptions = document.querySelectorAll('.grid-option');
+
+        let selectedFile = null;
+        let processedPdf = null;
+        let selectedPages = 6;
+        let selectedLayout = '2x3';
+
+        // Set up grid option selection
+        gridOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                // Remove selected class from all options
+                gridOptions.forEach(opt => opt.classList.remove('selected'));
+                // Add selected class to clicked option
+                this.classList.add('selected');
+                // Update selected pages and layout
+                selectedPages = parseInt(this.dataset.pages);
+                selectedLayout = this.dataset.layout;
+            });
+        });
+
+        // Event listeners for drag and drop
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropArea.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropArea.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight() {
+            dropArea.classList.add('highlight');
+        }
+
+        function unhighlight() {
+            dropArea.classList.remove('highlight');
+        }
+
+        // Handle file drop
+        dropArea.addEventListener('drop', handleDrop, false);
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files);
+        }
+
+        // Handle file selection via input
+        fileInput.addEventListener('change', function() {
+            handleFiles(this.files);
+        });
+
+        // Process the selected file
+        function handleFiles(files) {
+            if (files.length > 0) {
+                const file = files[0];
+                if (file.type === 'application/pdf') {
+                    if (file.size <= 52428800) { // 50MB max
+                        selectedFile = file;
+                        status.innerHTML = `Selected: <strong>${file.name}</strong> (${formatFileSize(file.size)})`;
+                        optionsDiv.classList.remove('hidden');
+                        actionsDiv.classList.remove('hidden');
+                        downloadBtn.classList.add('hidden');
+                    } else {
+                        status.textContent = 'Error: File size exceeds the 50MB limit.';
+                    }
+                } else {
+                    status.textContent = 'Error: Please select a PDF file.';
+                }
+            }
+        }
+
+        // Format file size
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            else return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        // Process PDF button click
+        processBtn.addEventListener('click', async function() {
+            if (!selectedFile) {
+                status.textContent = 'Please select a PDF file first.';
+                return;
+            }
+
+            try {
+                processBtn.disabled = true;
+                status.textContent = 'Processing your PDF...';
+                progressContainer.style.display = 'block';
+                
+                // Get selected orientation
+                const orientationInputs = document.querySelectorAll('input[name="orientation"]');
+                let orientation = 'landscape';
+                for (const input of orientationInputs) {
+                    if (input.checked) {
+                        orientation = input.value;
+                        break;
+                    }
+                }
+                
+                // Process the PDF
+                processedPdf = await processAndCombinePDF(selectedFile, selectedPages, selectedLayout, orientation);
+                
+                status.textContent = 'PDF processing complete!';
+                downloadBtn.href = URL.createObjectURL(processedPdf.output('blob'));
+                downloadBtn.classList.remove('hidden');
+                progressContainer.style.display = 'none';
+            } catch (error) {
+                console.error(error);
+                status.textContent = 'Error processing PDF. Please try again.';
+                progressContainer.style.display = 'none';
+            } finally {
+                processBtn.disabled = false;
+            }
+        });
+
+        // Calculate positions for different layout options
+        function calculatePositions(layout, orientation, pageWidth, pageHeight) {
+            const padding = 30;
+            const positions = [];
+            const [rows, cols] = layout.split('x').map(Number);
+            
+            // Calculate available space
+            const availableWidth = pageWidth - (padding * 2);
+            const availableHeight = pageHeight - (padding * 2);
+            
+            // Calculate item dimensions
+            const itemWidth = availableWidth / cols;
+            const itemHeight = availableHeight / rows;
+            
+            // Generate positions
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    positions.push({
+                        x: padding + (col * itemWidth),
+                        y: padding + (row * itemHeight)
+                    });
+                }
+            }
+            
+            return positions;
+        }
+
+        // Main function to process and combine PDF
+        async function processAndCombinePDF(inputPdfFile, pagesPerSheet, layout, orientation) {
+            // Load the PDF using PDF.js
+            const pdfData = await inputPdfFile.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
+            const totalPages = pdf.numPages;
+            
+            // Create a new PDF with jsPDF
+            const outputPdf = new jspdf.jsPDF({
+                orientation: orientation,
+                unit: 'pt',
+                format: 'a4'
+            });
+            
+            // Get page dimensions
+            const pageWidth = orientation === 'landscape' ? 842 : 595;
+            const pageHeight = orientation === 'landscape' ? 595 : 842;
+            
+            // Calculate positions based on layout
+            const positions = calculatePositions(layout, orientation, pageWidth, pageHeight);
+            
+            const outputPages = Math.ceil(totalPages / pagesPerSheet);
+            
+            // Calculate scale based on layout
+            const [rows, cols] = layout.split('x').map(Number);
+            
+            // We'll determine the scale dynamically based on the first page
+            const firstPage = await pdf.getPage(1);
+            const firstPageViewport = firstPage.getViewport({ scale: 1 });
+            
+            // Calculate available space per item
+            const availableWidth = (pageWidth - 60) / cols;  // 60 = padding on both sides
+            const availableHeight = (pageHeight - 60) / rows;  // 60 = padding on both sides
+            
+            // Calculate scale factors for width and height
+            const scaleX = availableWidth / firstPageViewport.width;
+            const scaleY = availableHeight / firstPageViewport.height;
+            
+            // Use the smaller scale to ensure content fits
+            const scale = Math.min(scaleX, scaleY) * 0.95;  // 0.95 to add a small margin between items
+            
+            // Process pages in groups based on pagesPerSheet
+            for (let i = 0; i < outputPages; i++) {
+                updateProgress(i, outputPages);
+                
+                if (i > 0) outputPdf.addPage();
+                
+                for (let j = 0; j < pagesPerSheet; j++) {
+                    const originalPageNum = i * pagesPerSheet + j + 1;
+                    if (originalPageNum <= totalPages) {
+                        const page = await pdf.getPage(originalPageNum);
+                        const viewport = page.getViewport({ scale });
+                        
+                        // Render page to canvas
+                        const canvas = document.createElement('canvas');
+                        // Set a higher DPI for better quality
+                        const pixelRatio = window.devicePixelRatio || 2;
+                        canvas.width = viewport.width * pixelRatio;
+                        canvas.height = viewport.height * pixelRatio;
+                        canvas.style.width = viewport.width + 'px';
+                        canvas.style.height = viewport.height + 'px';
+                        
+                        const context = canvas.getContext('2d');
+                        context.scale(pixelRatio, pixelRatio);
+                        
+                        await page.render({
+                            canvasContext: context,
+                            viewport: viewport
+                        }).promise;
+                        
+                        // Add to output PDF at calculated position with high quality
+                        const pos = positions[j];
+                        
+                        // Use PNG format for better quality
+                        outputPdf.addImage(
+                            canvas.toDataURL('image/png', 1.0), 
+                            'PNG', 
+                            pos.x, 
+                            pos.y, 
+                            viewport.width, 
+                            viewport.height
+                        );
+                        
+                        // Add page number
+                        outputPdf.setFontSize(8);
+                        outputPdf.text(`Page ${originalPageNum}/${totalPages}`, 
+                            pos.x + viewport.width / 2, 
+                            pos.y + viewport.height + 10,
+                            { align: 'center' }
+                        );
+                    }
+                }
+            }
+            
+            // Update progress to 100%
+            updateProgress(outputPages, outputPages);
+            
+            return outputPdf;
+        }
+
+        // Update progress bar
+        function updateProgress(current, total) {
+            const percentage = Math.round((current / total) * 100);
+            progressBar.style.width = `${percentage}%`;
+            progressText.textContent = `Processing: ${percentage}%`;
+        }
+    </script>
+</body>
+</html>
